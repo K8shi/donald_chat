@@ -1,0 +1,82 @@
+version: '3'
+services:
+  web0:
+    image: chatbot
+    command: python manage.py runserver 0.0.0.0:8000
+    build: 
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env
+    networks:
+      - app-web-net  
+    depends_on:
+      - db
+      - celery
+      - redis
+      
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    networks:
+      - app-web-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+  
+  celery:
+    image: chatbot
+    command: watchmedo auto-restart --directory=. --pattern=*.py --recursive -- celery -A project worker --loglevel=info
+    # command: DJANGO_SETTINGS_MODULE=project.settings celery -A project worker -l info
+    restart: always
+    env_file:
+      - ./.env
+    logging:
+      driver: journald
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    depends_on:
+      - redis
+      - db
+    networks:
+      - app-web-net
+    volumes:
+      - .:/app
+      
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+    networks:
+      - app-web-net
+    volumes:
+      - .:/app
+  # nginx:
+  #   build: ./.docker/nginx/local
+  #   ports:
+  #     - 80:80
+  #   depends_on:
+  #     - web0
+volumes:
+  postgres_data:
+
+
+networks: 
+  app-web-net:
+    driver: bridge

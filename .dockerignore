@@ -1,0 +1,11 @@
+db.sqlite3
+vector_db
+
+
+__pycache__
+
+extracted
+# Staticfiles
+staticfiles
+db.sqlite3
+uploads

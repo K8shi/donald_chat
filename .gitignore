@@ -1,0 +1,9 @@
+__pycache__
+
+vector_db
+extracted
+# Staticfiles
+staticfiles
+db.sqlite3
+uploads
+.env

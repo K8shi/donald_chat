@@ -1,0 +1,170 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}
+  Chatbot
+{% endblock %}
+{% block extra_headers %}
+  {% comment %} <link rel="stylesheet" href="{% static 'assets/css/chatbot.css' %}" /> {% endcomment %}
+{% endblock %}
+{% block content %}
+  {% if db_error %}
+    <div style="margin-top: 8rem;">
+      <div class="alert alert-danger p-4" role="alert">
+        <div class="fw-semibold fs-3">Database Error</div>
+        <div class="mt-2">
+          We encountered an error while retrieving the database. This error might arise due to the following reasons:<ol>
+            <li>Invalid collection name for the database.</li>
+            <li>Invalid embedding of the database.</li>
+            <li>Database error.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="d-flex justify-content-center" style="min-height: 81vh; max-height: max-content; position: relative!important; margin-top: 8rem;">
+      <div id="convo-div" class="col-12 col-lg-10 position-relative" style="margin-bottom: 9rem; height: max-content;"></div>
+
+      <div class="chatbox-div col-9 bg-transparent">
+        <form id="chat-form" class="d-flex justify-content-center col-11">
+          {% csrf_token %}
+          <div class="col-10 me-2">
+            <input type="text" class="form-control" name="query" placeholder="Ask any question" required style="height: 2.5rem;" />
+          </div>
+          <button class="btn btn-dark"><i class="bi bi-send-fill"></i></button>
+        </form>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const chatForm = document.querySelector('#chat-form')
+        chatForm.addEventListener('submit', (e) => {
+          sendMessage(e)
+        })
+      })
+      
+      function sendMessage(event) {
+        event.preventDefault()
+      
+        // Get the message input value
+        const messageInput = document.querySelector('input[name="query"]')
+        const message = messageInput.value.trim()
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value // using csrf token for posting purpose
+      
+        if (message !== '') {
+          messageInput.disabled = true
+      
+          // Prepare the data to be sent
+          const data = {
+            user_query: message
+          }
+      
+          const convoDiv = document.querySelector('#convo-div')
+          // Adding the new message of user to the website
+          let newMessageDiv = document.createElement('div')
+          newMessageDiv.innerHTML = `
+          <div class="d-flex rounded p-3 mb-2" style="height: max-content;">
+            <div class="col-1 d-flex justify-content-center p-2">
+                {% if request.user.profile_photo %}
+                    <img src={{ request.user.profile_photo.url }} alt="Profile Photo" class="user-pfp rounded-circle">
+                {% else %}
+                    <div class="user-pfp rounded bg-black text-light">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col border px-3 py-2 bg-light-subtle rounded">
+                <div class="lead fw-semibold mt-1 mb-2">{{ request.user.username }}</div>
+                <p> ${message} </p>
+            </div>
+          </div>  `
+          convoDiv.append(newMessageDiv)
+      
+          // Send an API request to the server to fetch response
+          fetch('/api/send-message/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data)
+              if (data.status === 200) {
+                // Render the new response to the website
+                let newResponseDiv = document.createElement('div')
+                newResponseDiv.innerHTML = `
+                  <div class="d-flex rounded p-3 mb-2" style="height: max-content;">
+                      <div class="col-1 d-flex justify-content-center p-2">
+                        {% if request.user.bot_icon %}
+                          <img src={{ request.user.bot_icon.url  }} alt="Bot Photo" class="user-pfp rounded-circle">
+                          {% else %}
+                              <div class="user-pfp rounded bg-warning text-light">
+                                  <i class="bi bi-robot"></i>
+                              </div>
+                          {% endif %}
+                      </div>
+                      <div class="col border px-3 py-2 bg-light-subtle rounded">
+                          <div class="lead fw-semibold mt-1 mb-2">Bot</div>
+                          <p class="bot-response-div"></p>
+                      </div>
+                  </div>`
+                convoDiv.append(newResponseDiv)
+      
+                let div_collection = document.querySelectorAll('.bot-response-div')
+      
+                // Check if there are any elements found
+                if (div_collection.length > 0) {
+                  // Get the last element by accessing it using length - 1
+                  var lastElement = div_collection[div_collection.length - 1]
+                  let botResponse = data.response.split(' ')
+                  let wordIndex = 0
+      
+                  function insertWord() {
+                    // Check if there are still words to insert
+                    if (wordIndex < botResponse.length) {
+                      // Create a text node with the current word
+                      var wordNode = document.createTextNode(botResponse[wordIndex] + ' ')
+      
+                      // Append the text node to the last node
+                      lastElement.appendChild(wordNode)
+      
+                      // Increment the word index
+                      wordIndex++
+                    } else {
+                      // If all words have been inserted, clear the interval
+                      clearInterval(insertInterval)
+                      messageInput.disabled = false
+                    }
+                    scrollToBottom()
+                  }
+      
+                  // Call the insertWord function initially
+                  insertWord()
+      
+                  // Set an interval to call the insertWord function every 0.2 seconds
+                  var insertInterval = setInterval(insertWord, 100)
+                } else {
+                  // Handle case where no elements are found
+                  console.log("No elements found with the class name 'bot-response-div'.")
+                }
+      
+                // Clear the message input field
+              } else {
+                window.location.href = '/error_page/'
+              }
+            })
+            .catch((error) => {
+              console.error('Error:', error)
+            })
+          messageInput.value = ''
+        }
+      }
+      
+      function scrollToBottom() {
+        window.scrollTo(0, document.body.scrollHeight)
+      }
+    </script>
+  {% endif %}
+{% endblock %}

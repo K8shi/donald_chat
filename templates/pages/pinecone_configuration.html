@@ -1,0 +1,68 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}
+  Upload DB
+{% endblock %}
+{% block extra_headers %}
+  <link rel="stylesheet" href="{% static 'assets/css/chatbot.css' %}" />
+{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-center">
+    <div class="bg-light border rounded mb-3 p-4" style="height: max-content;width: 40rem;margin-top: 8rem;">
+      <div class="col">
+        <div class="fs-3 fw-bold px-3 pt-3">Pinecone Configuration</div>
+      </div>
+      <form action="{% url 'app:pinecone_configuration' %}" method="post">
+        {% csrf_token %}
+        <div class="mt-3 p-3">
+          <div class="d-flex align-items-center">
+            <div class="col">
+              {{pinecone_key_form.pinecone_api_key}}
+            </div>
+          </div>
+        </div>
+        {% if pinecone_key_form.errors %}
+          <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+            <div>Fix the following issue(s)</div>
+            {% for field, errors in pinecone_key_form.errors.items %}
+              {% if field == '__all__' %}
+                {{ errors }}
+              {% else %}
+                {% for error in errors %}
+                  <li>
+                    <span class="fw-semibold me-2">{{ field }}:</span>{{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mt-3 p-3">
+          <div class="d-flex align-items-center">
+            <div class="col">
+              {{pinecone_key_form.pinecone_index_name}}
+            </div>
+          </div>
+        </div>
+        {% if pinecone_key_form.errors %}
+          <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+            <div>Fix the following issue(s)</div>
+            {% for field, errors in pinecone_key_form.errors.items %}
+              {% if field == '__all__' %}
+                {{ errors }}
+              {% else %}
+                {% for error in errors %}
+                  <li>
+                    <span class="fw-semibold me-2">{{ field }}:</span>{{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        <button class="btn btn-dark m-3">Submit</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

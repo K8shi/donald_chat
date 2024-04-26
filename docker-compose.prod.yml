@@ -1,0 +1,64 @@
+version: '3'
+services:
+  web0:
+    image: chatbot
+    command: gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    restart: always
+    build: 
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env
+
+    depends_on:
+      # - db
+      - celery
+      - redis
+
+  # db:
+  #   image: postgres:15
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=postgres
+  #   env_file:
+  #     - ./.env
+
+
+  nginx:
+    build: ./.docker/nginx/production
+    ports:
+      - 80:80
+    depends_on:
+      - web0
+
+  celery:
+    image: chatbot
+    command: watchmedo auto-restart --directory=. --pattern=*.py --recursive -- celery -A project worker --loglevel=info
+    restart: always
+    env_file:
+      - ./.env
+    logging:
+      driver: journald
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    depends_on:
+      - redis
+      # - db
+    volumes:
+      - .:/app
+      
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

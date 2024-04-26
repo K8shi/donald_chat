@@ -1,0 +1,87 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}
+  Register
+{% endblock %}
+
+{% block extra_headers %}
+
+{% endblock %}
+
+{% block navbar %}
+
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-center p-5">
+    <div class="bg-light border rounded mt-5 mb-3 p-4" style="height: max-content; width: 30rem;">
+      <div class="col">
+        <div class="fs-3 fw-bold px-3 pt-3">Register New Account</div>
+        <div class="px-3 fw-semibold" style="font-size: 1rem;">Please provide your details to create and access your account.</div>
+      </div>
+
+      <form action="{% url 'app:user_register' %}" method="post">
+        {% csrf_token %}
+        <div class="col mt-4">
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Username</label>
+            <div style="font-size: 0.7rem;">{{ register_form.username.help_text }}</div>
+            {{ register_form.username }}
+          </div>
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Email</label>
+            {{ register_form.email }}
+          </div>
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Password</label>
+            <div style="font-size: 0.7rem;">{{ register_form.password1.help_text }}</div>
+            {{ register_form.password1 }}
+          </div>
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Confirm Password</label>
+            {{ register_form.password2 }}
+          </div>
+        </div>
+        {% if register_form.errors %}
+          <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+            <div>Fix the following issue(s)</div>
+            {% for field, errors in register_form.errors.items %}
+              {% if field == '__all__' %}
+                {{ errors }}
+              {% else %}
+                {% for error in errors %}
+                  <li>
+                    <span class="fw-semibold me-2">{{ field }}:</span>{{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        <div class="d-flex justify-content-center mt-4">
+          <button class="btn btn-dark m-2 col-11">Register</button>
+        </div>
+      </form>
+
+      <div class="px-3 py-1 mt-3">
+        Already have an account? <a href="{% url 'app:user_login' %}" class="link-offset-2 text-dark"><span class="fw-semibold">Click here</span></a>
+      </div>
+    </div>
+  </div>
+  {% comment %}
+
+  {{ register_form.password1 }}
+  {{ register_form.password2 }}
+  {% if register_form.errors %}
+    <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+      <ul>
+        {% for field, errors in register_form.errors.items %}
+          {% for error in errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %} {% endcomment %}
+{% endblock %}

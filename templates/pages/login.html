@@ -1,0 +1,62 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}
+  Login
+{% endblock %}
+
+{% block extra_headers %}
+
+{% endblock %}
+
+{% block navbar %}
+
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-center p-5">
+    <div class="bg-light border rounded mb-3 p-4" style="height: max-content; width: 30rem; margin-top: 7rem;">
+      <div class="col">
+        <div class="fs-3 fw-bold px-3 pt-3">Welcome Back</div>
+        <div class="px-3 fw-semibold" style="font-size: 1rem;">Please enter your username and password</div>
+      </div>
+
+      <form action="{% url 'app:user_login' %}" method="post">
+        {% csrf_token %}
+        <div class="col mt-4">
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Username</label>
+            {{ login_form.username }}
+          </div>
+          <div class="bg-light d-flex flex-column justify-content-center px-3 py-2">
+            <label for="username" class="mb-2">Password</label>
+            {{ login_form.password }}
+          </div>
+        </div>
+        {% if login_form.errors %}
+          <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+            <div>Fix the following issue(s)</div>
+            {% for field, errors in login_form.errors.items %}
+              {% if field == '__all__' %}
+                {{ errors }}
+              {% else %}
+                {% for error in errors %}
+                  <li>
+                    <span class="fw-semibold me-2">{{ field }}:</span>{{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        <div class="d-flex justify-content-center mt-4">
+          <button class="btn btn-dark m-2 col-11">Login</button>
+        </div>
+      </form>
+
+      <div class="px-3 py-1 mt-3">
+        Don't have an account? <a href="{% url 'app:user_register' %}" class="link-offset-2 text-dark"><span class="fw-semibold">Click here</span></a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

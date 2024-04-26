@@ -1,0 +1,183 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block title %}
+  Upload Knowledge Base Zip File
+{% endblock %}
+{% block content %}
+  <style>
+   .progress-bar-infinit {
+        height: 4px;
+        background-color: rgba(5, 114, 206, 0.2);
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .progress-bar-value {
+        width: 100%;
+        height: 100%;
+        background-color: rgb(5, 114, 206);
+        animation: indeterminateAnimation 1s infinite linear;
+        transform-origin: 0% 50%;
+    }
+
+    @keyframes indeterminateAnimation {
+    0% {
+        transform:  translateX(0) scaleX(0);
+    }
+    40% {
+        transform:  translateX(0) scaleX(0.4);
+    }
+    100% {
+        transform:  translateX(100%) scaleX(0.5);
+    }
+    } 
+  </style>
+  <div class="d-flex justify-content-center">
+    <div class="bg-light border rounded mb-3 p-4" style="height: max-content;width: 40rem;margin-top: 8rem;">
+      <div class="col">
+        <div class="fs-3 fw-bold px-3 pt-3">Upload Knowledge Base in Zip file</div>
+        <div class="px-3 fw-semibold" style="font-size: 1rem;">Feed the bot with the knowledge to get assistance.</div>
+      </div>
+      <form  id="uploadForm" action="{% url 'app:upload_zip_file' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mt-3 p-3">
+          <div class="DBResume">
+            <div class="bg-body-secondary d-flex flex-column justify-content-center align-items-center text-secondary rounded border mt-4 p-3" style="height: max-content">
+              <div class="fs-3">
+                <i class="bi bi-database-fill"></i>
+              </div>
+              <div>Upload Zip File</div>
+            </div>
+            <div class="col">
+              <div class="my-2">Selected File: </div>
+              <div id="current_file_name"></div>
+            </div>
+            <input type="file"  id="id_uploaded_zip_file" /> 
+            {% comment %} <div class="text-center progress-text" id="infinit-text" style="display: none">Processing, please wait...</div> {% endcomment %}
+            <div class="text-center progress-text" id="infinit-text" style=>
+              {% comment %} <p class="alert alert-primary"> Processing, please wait... <p> {% endcomment %}
+            </div>
+
+            <div class="progress-bar-infinit mb-3" id="infinit" style="display: none">
+                <div class="progress-bar-value"></div>  
+            </div>
+            <div class="progress mt-3" style="display: none;">
+              <div class="progress-bar" id="progba" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <script>
+              const customFileUpload = document.querySelector('.DBResume')
+              const fileInput = document.getElementById('id_uploaded_zip_file')
+              const fileNameSpan = document.getElementById('current_file_name')
+              const uploadForm = document.getElementById('uploadForm');
+              const progressBar = document.querySelector('.progress');
+              const progressBarFill = document.getElementById('progba');
+              const progressText = document.getElementById('infinit-text');
+              const infinitProgress = document.getElementById('infinit');
+ 
+              customFileUpload.addEventListener('click', () => {
+                console.log('click')
+                fileInput.click() // Trigger the file input's click event
+              })
+              fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                  fileNameSpan.textContent = fileInput.files[0].name
+                }
+              })
+
+              uploadForm.addEventListener('submit', (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                const formData = new FormData();
+                formData.append('uploaded_zip_file', fileInput.files[0]);
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', (e) => {
+                  if (e.lengthComputable) {
+                    const progressPercentage = Math.round((e.loaded / e.total) * 100); 
+                    progressBar.style.display = 'block';
+                    progressBarFill.style.width = `${progressPercentage}%`;
+                    progressBarFill.setAttribute('aria-valuenow', progressPercentage);
+                    progressBarFill.textContent = `${progressPercentage}%`;
+                    if (progressPercentage >= 100){
+                        console.log("start");
+                        progressBar.style.display = 'none';
+                        infinitProgress.style.display = 'block';
+                        progressText.style.display = 'block';
+                        checkProcessingStatus();
+                    }
+
+                  }
+                });
+                // Manually include the CSRF token in the request headers 
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                xhr.open('POST', uploadForm.action);
+                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                xhr.send(formData);
+              });
+
+              function checkProcessingStatus() { 
+                  const intervalId = setInterval(() => {
+                      const xhr = new XMLHttpRequest();
+                      const progressUrl = "{% url 'app:check_progress' %}"
+                      xhr.open('GET', progressUrl, true); // Change URL to your endpoint
+                      xhr.onload = function() {
+                          if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                              const data = JSON.parse(xhr.responseText);
+                              
+                              if (data.progress){
+                                  progressText.textContent = data.progress + " ...";
+                                  if (data.status === 'complete'){
+                                        infinitProgress.style.display = 'none';
+                                        progressText.innerHTML = '<p class="alert alert-success">Processing completed successfully</p>';
+                                        clearInterval(intervalId);
+                                  }
+                                  else if (data.status === 'starting_text_processing'){
+                                    progressText.innerHTML = '<p class="alert alert-primary">Starting Text Processing</p>';
+                                  }
+                                  else if (data.status === 'text_processing_complete'){
+                                    progressText.innerHTML = '<p class="alert alert-primary">Text Processing Completed</p>';
+                                  }
+                                  else if (data.status === 'starting_embedding'){
+                                    progressText.innerHTML = '<p class="alert alert-info">Embedding Started</p>';
+                                  }
+                                  else if (data.status === 'embedding_complete'){
+                                    progressText.innerHTML = '<p class="alert alert-secondary">Embedding Completed</p>';
+                                  }
+                                  else if (data.status === 'error'){
+                                    infinitProgress.style.display = 'none';
+                                    progressText.innerHTML = '<p class="alert alert-danger">You have an error</p>';
+
+                                  }
+                              }
+                          }
+                      };
+                      xhr.send();
+                  }, 10000); // Check status every 10 seconds (adjust as needed)
+              }
+            </script>
+          </div>
+        </div>
+        {% if database_form.errors %}
+          <div class="alert alert-warning m-3" role="alert" style="font-size: 0.7rem;">
+            <div>Fix the following issue(s)</div>
+            {% for field, errors in database_form.errors.items %}
+              {% if field == '__all__' %}
+                {{ errors }}
+              {% else %}
+                {% for error in errors %}
+                  <li>
+                    <span class="fw-semibold me-2">{{ field }}:</span>{{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %} 
+        <button class="btn btn-dark m-3">Submit</button>
+      </form>
+
+      
+    </div>
+  </div>
+{% endblock %}
